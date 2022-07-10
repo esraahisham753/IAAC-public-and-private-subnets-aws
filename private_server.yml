@@ -1,0 +1,60 @@
+Parameters:
+  EnvironmentName: 
+    Description: "The name that will be prefixed to all resources"
+    Type: String
+  AMI: 
+    Description: "EC2 instance machine image"
+    Type: String
+Resources:
+  RoleForSSMAccess:
+    Type: AWS::IAM::Role
+    Properties: 
+      AssumeRolePolicyDocument: 
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+            Action: 
+              - "sts:AssumeRole"
+      ManagedPolicyArns: 
+        - "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+  ServerInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties: 
+      Roles: 
+        - !Ref RoleForSSMAccess
+  WebAccessSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties: 
+      GroupDescription: "Security group to allow http to our server"
+      SecurityGroupEgress: 
+        - CidrIp: 0.0.0.0/0
+          FromPort: -1
+          IpProtocol: -1
+          ToPort: -1
+      SecurityGroupIngress: 
+        - CidrIp: 0.0.0.0/0
+          FromPort: 80
+          IpProtocol: tcp
+          ToPort: 80
+      VpcId: !ImportValue "es-public-private-VPCID"
+  ServerInstance:
+    Type: AWS::EC2::Instance
+    Properties: 
+      ImageId: !Ref AMI
+      InstanceType: t3.micro
+      NetworkInterfaces: 
+        - AssociatePublicIpAddress: true
+          DeviceIndex: "0"
+          GroupSet: 
+            - !Ref WebAccessSecurityGroup
+          SubnetId: !ImportValue "es-public-private-SUBID"
+      IamInstanceProfile: !Ref ServerInstanceProfile
+  
+      
+
+
+   
+  
